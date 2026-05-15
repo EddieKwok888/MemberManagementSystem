@@ -1,0 +1,115 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==========================================
+    // 1. 輔助函數 (Helper Functions)
+    // ==========================================
+    
+    // 檢查用戶是否已登入
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // 檢查用戶是否擁有特定角色 (直接從資料庫查詢)
+    function hasRole(role) {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    
+    // 檢查是否為文檔擁有者
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // 驗證請求數據中是否包含必要欄位
+    function hasFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    // 檢查數據是否未被篡改 (特定欄位不可由用戶直接修改)
+    function isNotModifying(fields) {
+      return !(request.resource.data.diff(resource.data).affectedKeys().hasAny(fields));
+    }
+
+    // ==========================================
+    // 2. 集合規則 (Collection Rules)
+    // ==========================================
+
+    // --- Users 集合 (帳戶基礎資訊) ---
+    match /users/{userId} {
+      // 允許用戶讀取自己，以及管理員/員工讀取所有人
+      allow read: if isSignedIn() && (isOwner(userId) || hasRole('admin') || hasRole('staff'));
+      
+      // 權限變更必須透過 Cloud Functions 或管理員處理
+      allow create: if hasRole('admin');
+      
+      // 允許用戶更新自己的基本資訊，但禁止修改 role, uid, createdAt
+      allow update: if isSignedIn() && (
+        (isOwner(userId) && isNotModifying(['role', 'uid', 'createdAt'])) ||
+        hasRole('admin')
+      );
+      
+      allow delete: if hasRole('admin');
+
+    }
+
+    // --- MemberProfiles 集合 (詳細會員檔案) ---
+    match /memberProfiles/{userId} {
+      // 讀取權限
+      allow read: if isSignedIn() && (isOwner(userId) || hasRole('admin') || hasRole('staff'));
+      
+      // 寫入權限 (會員修改自己，管理員修改所有)
+      allow create: if isSignedIn() && (isOwner(userId) || hasRole('admin'));
+
+      
+      allow update: if isSignedIn() && (
+        // 情況 A: 會員修改自己 (限制敏感欄位)
+        (isOwner(userId) && isNotModifying(['membershipTier', 'points', 'uid'])) ||
+        // 情況 B: 管理員修改所有
+        hasRole('admin')
+      );
+      
+      // 嚴禁員工 (Staff) 刪除用戶
+      allow delete: if hasRole('admin');
+    }
+
+    // --- AdminAuditLogs 集合 (審計日誌) ---
+    match /adminAuditLogs/{logId} {
+      // 只有管理員可以查看歷史日誌
+      allow read: if hasRole('admin');
+      
+      // 允許寫入 (主要是 Functions 調用，但此處規則允許有 Token 的請求寫入一次性日誌)
+      allow create: if isSignedIn() && hasFields(['adminUid', 'action', 'timestamp']);
+      
+      // 核心安全：一旦寫入，嚴禁任何人 (包括 Admin) 修改或刪除
+      allow update, delete: if false;
+    }
+
+    // --- Roles & Permissions (系統定義) ---
+    match /roles/{roleId} {
+      allow read: if isSignedIn();
+      allow write: if hasRole('admin');
+    }
+
+    match /permissions/{permissionId} {
+      allow read: if isSignedIn();
+      allow write: if hasRole('admin');
+    }
+
+    // --- SystemSettings (系統配置) ---
+    match /systemSettings/{setting} {
+      allow read: if true; // 允許公開讀取部分配置 (如維護狀態)
+      allow write: if hasRole('admin');
+    }
+
+    // ==========================================
+    // 3. 默認拒絕 (Default Deny)
+    // ==========================================
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

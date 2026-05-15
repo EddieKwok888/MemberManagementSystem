@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.DS_Store
+
+# Firebase
+.firebase/
+*-debug.log
+.runtimeconfig.json
+
+# Secrets (IMPORTANT: DO NOT REMOVE)
+*.json
+!package.json
+!package-lock.json
+!firebase.json
+!firestore.indexes.json
+!tsconfig.json
+
+# Backup data
+backups/
+
+# IDE
+.vscode/
+.idea/
+
+# Build outputs
+dist/
+lib/
+build/
+
+# Local env files
+.env
+.env.local
+.env.*.local

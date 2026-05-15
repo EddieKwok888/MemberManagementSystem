@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "adminAuditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "adminUid", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
