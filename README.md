@@ -1,2 +1,0 @@
-# MemberManagementSystem
-Member Management System
