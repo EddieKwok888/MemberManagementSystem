@@ -92,6 +92,13 @@ cd web
 npm run dev
 ```
 *   **訪問網址**: 打開瀏覽器輸入 `http://localhost:5173`。
+<img width="946" height="769" alt="image" src="https://github.com/user-attachments/assets/1d075170-2024-4fb6-91df-7bc7c2afdeb1" />
+<img width="943" height="637" alt="image" src="https://github.com/user-attachments/assets/29109a80-5053-48fc-b472-eacb5d2cdad7" />
+<img width="944" height="758" alt="image" src="https://github.com/user-attachments/assets/4964b97f-3aff-452f-8cb4-ac85088ac03c" />
+<img width="930" height="761" alt="image" src="https://github.com/user-attachments/assets/e800858c-1802-4aa0-862d-90aec37679f0" />
+<img width="946" height="763" alt="image" src="https://github.com/user-attachments/assets/8a8fb971-1fff-4d14-8f92-e769d1eff6ec" />
+<img width="948" height="966" alt="image" src="https://github.com/user-attachments/assets/d64bcb7e-9581-4def-ad18-6c20e76baa41" />
+<img width="947" height="698" alt="image" src="https://github.com/user-attachments/assets/3937f065-e69b-47ce-a323-4bc8ec41a16c" />
 
 ---
 
