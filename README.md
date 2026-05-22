@@ -126,6 +126,93 @@ npx ts-node scripts/importData.ts backups/backup-xxxxxxxxxxxx
 
 ---
 
+## 🛠️ 進階管理功能與實用腳本 (2026年5月更新)
+
+本專案現已升級，全面支援**本機模擬器**與**真實雲端生產環境**雙模運行，並新增了完整的後台管理面板與一系列自動化運維腳本。
+
+### 1. 後台管理面板 (Admin Dashboard)
+當您以管理員身份登入系統後，可以在左側導航欄訪問以下功能：
+*   **管理員儀表板 (Dashboard)**: 快速概覽系統會員總數、待審核會員、已啟用/已禁用的會員統計。
+*   **會員管理 (Member Management)**:
+    *   查看所有註冊會員的詳細資料（包括權限與狀態）。
+    *   **編輯角色/權限**: 動態更改用戶角色（系統管理員、普通員工、一般會員）並同步更新 Firebase Custom Claims。
+    *   **啟用/禁用帳號**: 即時封禁或重新啟用會員。
+*   **系統全域設置 (System Settings)**:
+    *   **維護模式**: 一鍵開啟全站維護，限制非管理員用戶登入與操作。
+    *   **開放公開註冊**: 控制是否允許新用戶自助註冊。
+    *   **預設會員狀態**: 設定新註冊會員的初始狀態（如 `active` 已啟用，或 `pending` 待審核）。
+*   **審計日誌查看器 (Audit Logs)**: 即時記錄並查看管理員的所有操作記錄（如更改設置、修改用戶角色、禁用帳號等），確保安全與可追溯性。
+
+### 2. 雙環境切換 (本地 / 雲端)
+您可以在 `web/.env.local` 檔案中一鍵切換運作模式：
+*   **本地模擬器模式** (推薦開發使用): 設置 `VITE_USE_FIREBASE_EMULATOR=true`
+*   **雲端生產環境模式** (部署上線使用): 設置 `VITE_USE_FIREBASE_EMULATOR=false`
+
+---
+
+## 💻 自動化管理腳本 (Scripts)
+
+我們在根目錄的 `scripts/` 資料夾中提供了一套強大的後台管理腳本，能讓您不需要透過網頁，直接在終端機對 Firebase Auth 與 Firestore 進行高效的管理與診斷：
+
+### 1. 系統數據初始化
+*   **用途**: 初始化 Firestore 中的預設角色（Admin、Staff、Member）、權限映射表及初始系統全域設置。
+*   **執行指令**:
+    ```powershell
+    npm run bootstrap
+    ```
+
+### 2. 設置系統管理員 (Set Admin Role)
+*   **用途**: 將指定 Email 的用戶提升為「系統管理員」，同時在 Firestore 用戶文檔寫入 `role: "admin"`，並在 Firebase Auth 中寫入 `{role: "admin"}` 的 Custom Claims，使其獲得完整的管理權限。
+*   **執行指令**:
+    ```powershell
+    npx ts-node scripts/setAdminUsers.ts
+    ```
+    *系統將會提示您輸入要設置的 Email。*
+
+### 3. 診斷用戶詳細權限與狀態 (Diagnose User)
+*   **用途**: 查詢指定 Email 用戶的詳細資料。包括：UID、啟用狀態、創立時間、登入供應商，以及**最關鍵的 Custom Claims（自定義聲明/角色權限）**。
+*   **執行指令**:
+    ```powershell
+    npx ts-node scripts/checkUserAuthDetails.ts
+    ```
+
+### 4. 創建測試會員 (Create Test User)
+*   **用途**: 在 Firebase 中自動創建一個測試帳號並自動寫入對應的 Firestore 個人資料文檔。
+*   **執行指令**:
+    ```powershell
+    npx ts-node scripts/createTestUser.ts
+    ```
+
+### 5. 將本地備份數據匯入至真實雲端 (Cloud Data Import)
+*   **用途**: 將本地模擬器導出的 JSON 備份數據，安全、完整地遷移並上傳到真實的 Firebase 雲端生產環境。
+*   **執行指令**:
+    ```powershell
+    npx ts-node scripts/importDataToCloud.ts backups/您的備份資料夾名
+    ```
+
+### 6. 解鎖被封禁的帳號 (Fix Disabled User)
+*   **用途**: 當用戶帳號被系統禁用或封鎖時，此腳本可以一鍵將其在 Firebase Authentication 中恢復為啟用狀態。
+*   **執行指令**:
+    ```powershell
+    npx ts-node scripts/fixDisabledUser.ts
+    ```
+
+### 7. 列出所有註冊用戶 (List All Users)
+*   **用途**: 遍歷並輸出 Firebase Authentication 中所有已註冊的用戶列表及基本狀態。
+*   **執行指令**:
+    ```powershell
+    npx ts-node scripts/listAllUsers.ts
+    ```
+
+### 8. 安全規則一鍵部署 (Deploy Rules)
+*   **用途**: 在本地修改 `firestore.rules` 安全規則後，使用此腳本可快速將其部署至雲端，無需執行完整的 `firebase deploy`。
+*   **執行指令**:
+    ```powershell
+    npx ts-node scripts/deployRules.ts
+    ```
+
+---
+
 ## ⚠️ 注意事項
 
 *   **僅供測試用途**：目前嘅本地開發環境同模擬器資料**僅供開發測試使用**。請勿將其視為正式生產環境。
