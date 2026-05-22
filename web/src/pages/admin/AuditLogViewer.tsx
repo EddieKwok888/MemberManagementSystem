@@ -64,6 +64,15 @@ const AuditLogViewer: React.FC = () => {
         const fieldStr = fields.length > 0 ? ` (${fields.join('、')})` : '';
         return `${admin} 修改了「${target}」的個人資料${fieldStr}`;
       }
+      case 'UPDATE_SELF_PROFILE': {
+        const d = log.details || {};
+        const fields = [];
+        if (d.realName || d.displayName) fields.push('姓名');
+        if (d.phone) fields.push('電話');
+        if (d.address) fields.push('地址');
+        const fieldStr = fields.length > 0 ? ` (${fields.join('、')})` : '';
+        return `${admin} 自主更新了個人檔案${fieldStr}`;
+      }
       case 'RESET_PASSWORD_REQUEST':
         return `${admin} 為「${target}」發送了密碼重置請求`;
       case 'IMPERSONATE_USER':
@@ -100,6 +109,7 @@ const AuditLogViewer: React.FC = () => {
     const keyMap: any = {
       email: '電子郵件',
       displayName: '顯示名稱',
+      realName: '真實姓名',
       role: '角色',
       status: '狀態',
       phone: '電話',

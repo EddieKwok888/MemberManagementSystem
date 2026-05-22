@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions, db } from '../../firebase';
 import { collection, query, limit, getDocs, startAfter, doc, updateDoc } from 'firebase/firestore';
-import { Users, Search, UserPlus, Shield, UserX, UserCheck, Trash2, MoreVertical, Loader2, ChevronLeft, ChevronRight, Filter, X, LogIn } from 'lucide-react';
+import { Users, Search, UserPlus, Shield, UserX, UserCheck, Trash2, MoreVertical, Loader2, ChevronLeft, ChevronRight, Filter, X, LogIn, AlertCircle } from 'lucide-react';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,8 +10,8 @@ const MemberManagement: React.FC = () => {
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [lastVisible, setLastVisible] = useState<any>(null);
-  const [isFirstPage, setIsFirstPage] = useState(true);
+  const [pageHistory, setPageHistory] = useState<any[]>([null]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -20,10 +20,15 @@ const MemberManagement: React.FC = () => {
   const [newMember, setNewMember] = useState({
     email: '',
     password: '',
-    displayName: ''
+    displayName: '',
+    phone: '',
+    address: '',
+    role: 'member'
   });
   
   const navigate = useNavigate();
+  const [addError, setAddError] = useState('');
+  const [editError, setEditError] = useState('');
 
   // 定義雲端函數
   const toggleMemberStatusFn = httpsCallable(functions, 'toggleMemberStatus');
@@ -33,17 +38,18 @@ const MemberManagement: React.FC = () => {
   const impersonateUserFn = httpsCallable(functions, 'impersonateUser');
   const updateMemberByAdminFn = httpsCallable(functions, 'updateMemberByAdmin');
 
-  const fetchMembers = async (isNext = false) => {
+  const fetchMembers = async (pageIndex = currentPageIndex) => {
     setLoading(true);
     try {
-      console.log("Fetching members from Firestore...");
+      console.log("Fetching members from Firestore at page index:", pageIndex);
       let q = query(
         collection(db, 'users'),
         limit(10)
       );
 
-      if (isNext && lastVisible) {
-        q = query(q, startAfter(lastVisible));
+      const cursor = pageIndex === 0 ? null : pageHistory[pageIndex];
+      if (cursor) {
+        q = query(q, startAfter(cursor));
       }
 
       const snapshot = await getDocs(q);
@@ -52,8 +58,18 @@ const MemberManagement: React.FC = () => {
       console.log("Fetched data:", data);
       
       setMembers(data);
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      setIsFirstPage(!isNext);
+      setCurrentPageIndex(pageIndex);
+
+      if (snapshot.docs.length > 0) {
+        const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+        if (pageIndex >= pageHistory.length - 1) {
+          setPageHistory(prev => {
+            const nextHist = [...prev];
+            nextHist[pageIndex + 1] = lastDoc;
+            return nextHist;
+          });
+        }
+      }
     } catch (err: any) {
       console.error("獲取會員失敗詳情:", err);
       alert(`讀取列表失敗: ${err.message || '權限不足或網路問題'}`);
@@ -63,11 +79,36 @@ const MemberManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchMembers();
+    fetchMembers(0);
   }, []);
 
   const handleUpdateMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEditError('');
+
+    // 電子郵件格式驗證
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(editingMember.email)) {
+      setEditError('電子郵件格式不正確，必須是有效的電郵格式（例如：xxx@xxx.com）。');
+      return;
+    }
+
+    // 電話資料驗證 (非必填，但如果有輸入，必須為香港 8 位數字)
+    let cleanedPhone = '';
+    if (editingMember.phone) {
+      cleanedPhone = editingMember.phone.replace(/[\s\-()]/g, '');
+      if (cleanedPhone.startsWith('+852')) {
+        cleanedPhone = cleanedPhone.substring(4);
+      } else if (cleanedPhone.startsWith('852') && cleanedPhone.length > 8) {
+        cleanedPhone = cleanedPhone.substring(3);
+      }
+
+      if (!/^\d{8}$/.test(cleanedPhone)) {
+        setEditError('電話資料格式不正確，必須是 8 位數字的香港電話（例如：21234567 或 91234567）。');
+        return;
+      }
+    }
+
     setFormLoading(true);
     try {
       await updateMemberByAdminFn({
@@ -75,7 +116,7 @@ const MemberManagement: React.FC = () => {
         email: editingMember.email,
         displayName: editingMember.displayName,
         role: editingMember.role,
-        phone: editingMember.phone || '',
+        phone: cleanedPhone,
         address: editingMember.address || '',
       });
 
@@ -84,7 +125,7 @@ const MemberManagement: React.FC = () => {
       alert('會員資料更新成功！');
     } catch (err: any) {
       console.error("更新失敗:", err);
-      alert(`更新失敗: ${err.message}`);
+      setEditError(`更新失敗: ${err.message}`);
     } finally {
       setFormLoading(false);
     }
@@ -135,22 +176,50 @@ const MemberManagement: React.FC = () => {
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAddError('');
+
+    // 電子郵件格式驗證
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(newMember.email)) {
+      setAddError('電子郵件格式不正確，必須是有效的電郵格式（例如：xxx@xxx.com）。');
+      return;
+    }
+
+    // 電話資料驗證 (非必填，但如果有輸入，必須為香港 8 位數字)
+    let cleanedPhone = '';
+    if (newMember.phone) {
+      cleanedPhone = newMember.phone.replace(/[\s\-()]/g, '');
+      if (cleanedPhone.startsWith('+852')) {
+        cleanedPhone = cleanedPhone.substring(4);
+      } else if (cleanedPhone.startsWith('852') && cleanedPhone.length > 8) {
+        cleanedPhone = cleanedPhone.substring(3);
+      }
+
+      if (!/^\d{8}$/.test(cleanedPhone)) {
+        setAddError('電話資料格式不正確，必須是 8 位數字的香港電話（例如：21234567 或 91234567）。');
+        return;
+      }
+    }
+
     setFormLoading(true);
     try {
       const { auth } = await import('../../firebase');
       if (auth.currentUser) {
         await auth.currentUser.getIdToken(true);
       }
-      const result = await createMemberFn(newMember);
+      const result = await createMemberFn({
+        ...newMember,
+        phone: cleanedPhone
+      });
       console.log("Cloud function response:", result);
       setIsAddModalOpen(false);
-      setNewMember({ email: '', password: '', displayName: '' });
+      setNewMember({ email: '', password: '', displayName: '', phone: '', address: '', role: 'member' });
       fetchMembers();
       alert('會員創建成功！');
     } catch (err: any) {
       console.error("創建會員失敗詳情:", err);
       const errorMsg = `Error [${err.code || 'unknown'}]: ${err.message || '未知錯誤'}`;
-      alert(errorMsg);
+      setAddError(errorMsg);
     } finally {
       setFormLoading(false);
     }
@@ -179,7 +248,7 @@ const MemberManagement: React.FC = () => {
           會員管理
         </h1>
         <button 
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={() => { setAddError(''); setIsAddModalOpen(true); }}
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition-all text-sm font-medium"
         >
           <UserPlus className="w-4 h-4" />
@@ -278,6 +347,7 @@ const MemberManagement: React.FC = () => {
                               phone: member.phone || '',
                               address: member.address || ''
                             });
+                            setEditError('');
                             setIsEditModalOpen(true);
                           }}
                           className="p-2 text-slate-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-indigo-50"
@@ -331,13 +401,14 @@ const MemberManagement: React.FC = () => {
           </p>
           <div className="flex gap-2">
             <button 
-              disabled={isFirstPage || loading}
+              onClick={() => fetchMembers(currentPageIndex - 1)}
+              disabled={currentPageIndex === 0 || loading}
               className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-all"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button 
-              onClick={() => fetchMembers(true)}
+              onClick={() => fetchMembers(currentPageIndex + 1)}
               disabled={loading || members.length < 10}
               className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-all"
             >
@@ -365,6 +436,12 @@ const MemberManagement: React.FC = () => {
             </div>
 
             <form onSubmit={handleUpdateMember} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {editError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>{editError}</span>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">顯示名稱</label>
                 <input
@@ -470,8 +547,14 @@ const MemberManagement: React.FC = () => {
                 console.log("Form onSubmit triggered");
                 handleAddMember(e);
               }} 
-              className="p-6 space-y-4"
+              className="p-6 space-y-4 max-h-[80vh] overflow-y-auto"
             >
+              {addError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>{addError}</span>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">顯示名稱</label>
                 <input
@@ -510,6 +593,42 @@ const MemberManagement: React.FC = () => {
                   value={newMember.password}
                   onChange={e => setNewMember({ ...newMember, password: e.target.value })}
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">電話資料</label>
+                <input
+                  type="tel"
+                  placeholder="可選填"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  value={newMember.phone}
+                  onChange={e => setNewMember({ ...newMember, phone: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">詳細地址</label>
+                <textarea
+                  placeholder="可選填"
+                  rows={2}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm resize-none"
+                  value={newMember.address}
+                  onChange={e => setNewMember({ ...newMember, address: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">系統角色</label>
+                <select 
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  value={newMember.role}
+                  onChange={e => setNewMember({ ...newMember, role: e.target.value })}
+                >
+                  <option value="member">一般會員</option>
+                  <option value="staff">員工</option>
+                  <option value="admin">管理員</option>
+                </select>
+                <p className="text-[10px] text-slate-400">更改角色將影響該用戶的系統訪問權限</p>
               </div>
 
               <div className="pt-4 flex gap-3">

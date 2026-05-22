@@ -64,7 +64,7 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-slate-800">{user?.displayName}</h1>
+                <h1 className="text-3xl font-bold text-slate-800">{profile?.realName || profile?.displayName || user?.displayName || '未設置'}</h1>
                 <div className="flex items-center gap-3 mt-1 text-slate-500">
                   <Mail className="w-4 h-4" />
                   <span>{user?.email}</span>
@@ -85,7 +85,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-400 uppercase font-bold">真實姓名</p>
-                      <p className="text-slate-700 font-semibold">{profile?.realName || '未設置'}</p>
+                      <p className="text-slate-700 font-semibold">{profile?.realName || profile?.displayName || user?.displayName || '未設置'}</p>
                     </div>
                   </div>
                   
@@ -113,7 +113,7 @@ const ProfilePage: React.FC = () => {
 
               <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
                 <p className="text-xs text-slate-400 italic">帳戶資料受 SSL 加密保護，僅限您本人與系統管理員查看。</p>
-                <Link to="/change-password" size="sm" className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors px-4 py-2 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50">
+                <Link to="/change-password" className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors px-4 py-2 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50">
                   <Lock className="w-4 h-4" />
                   修改登入密碼
                 </Link>

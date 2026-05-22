@@ -2,16 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { db, functions } from '../../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { Settings, Shield, Bell, Users, Save, Loader2, AlertTriangle } from 'lucide-react';
+import { Settings, Shield, Bell, Users, Save, Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
 
 const SystemSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [settings, setSettings] = useState({
     maintenanceMode: false,
     adminAlertEmail: '',
     allowPublicRegistration: true,
-    defaultMemberStatus: 'active'
+    defaultMemberStatus: 'pending'
   });
 
   const updateSystemSettingsFn = httpsCallable(functions, 'updateSystemSettings');
@@ -26,7 +27,7 @@ const SystemSettings: React.FC = () => {
           maintenanceMode: data.maintenanceMode ?? false,
           adminAlertEmail: data.adminAlertEmail ?? '',
           allowPublicRegistration: data.allowPublicRegistration ?? true,
-          defaultMemberStatus: data.defaultMemberStatus ?? 'active'
+          defaultMemberStatus: data.defaultMemberStatus ?? 'pending'
         }));
       }
       setLoading(false);
@@ -40,13 +41,23 @@ const SystemSettings: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    if (settings.adminAlertEmail) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(settings.adminAlertEmail)) {
+        setError('管理員警報通知信箱格式不正確，必須是有效的電郵格式（例如：xxx@xxx.com）。');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await updateSystemSettingsFn(settings);
       alert('系統設置更新成功！');
     } catch (err: any) {
       console.error(err);
-      alert(`更新失敗: ${err.message}`);
+      setError(`更新失敗: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -73,6 +84,12 @@ const SystemSettings: React.FC = () => {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-2 duration-200">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
         
         {/* Security Settings */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">

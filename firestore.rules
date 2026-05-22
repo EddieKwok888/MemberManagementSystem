@@ -12,10 +12,9 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // 檢查用戶是否擁有特定角色 (直接從資料庫查詢)
+    // 檢查用戶是否擁有特定角色 (使用 Custom Claims，無需查詢資料庫，避免循環讀取與權限錯誤)
     function hasRole(role) {
-      return isSignedIn() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      return isSignedIn() && request.auth.token.role == role;
     }
 
     
@@ -43,8 +42,10 @@ service cloud.firestore {
       // 允許用戶讀取自己，以及管理員/員工讀取所有人
       allow read: if isSignedIn() && (isOwner(userId) || hasRole('admin') || hasRole('staff'));
       
-      // 權限變更必須透過 Cloud Functions 或管理員處理
-      allow create: if hasRole('admin');
+      // 允許新註冊用戶在 Auth 創建後同步建立自身檔案，但嚴禁偽造更高角色或非 active/pending 狀態
+      allow create: if isSignedIn() && isOwner(userId) 
+                    && request.resource.data.role == 'member'
+                    && (request.resource.data.status == 'active' || request.resource.data.status == 'pending');
       
       // 允許用戶更新自己的基本資訊，但禁止修改 role, uid, createdAt
       allow update: if isSignedIn() && (

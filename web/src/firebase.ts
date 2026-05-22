@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getFunctions } from "firebase/functions";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 // 您的 Firebase 配置文件
 const firebaseConfig = {
@@ -19,16 +19,21 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, import.meta.env.VITE_FIREBASE_REGION || 'us-central1');
 
-// 控制是否使用模擬器
-// 預設為 false，除非在 .env.local 中明確設置為 true
-const useEmulator = import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true';
+console.log("=== Firebase Debug Info ===");
+console.log("useEmulator:", import.meta.env.DEV ? import.meta.env.VITE_USE_FIREBASE_EMULATOR !== 'false' : import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true');
+console.log("VITE_FIREBASE_PROJECT_ID:", import.meta.env.VITE_FIREBASE_PROJECT_ID);
+console.log("VITE_USE_FIREBASE_EMULATOR:", import.meta.env.VITE_USE_FIREBASE_EMULATOR);
+console.log("import.meta.env.DEV:", import.meta.env.DEV);
+console.log("===========================");
 
-if (import.meta.env.DEV && useEmulator) {
-  const { connectAuthEmulator } = await import("firebase/auth");
-  const { connectFirestoreEmulator } = await import("firebase/firestore");
-  const { connectFunctionsEmulator } = await import("firebase/functions");
+// 在本地開發 (DEV) 模式下，除非在環境變量中明確設置 VITE_USE_FIREBASE_EMULATOR=false，否則預設強制啟用模擬器連線以確保安全。
+const useEmulator = import.meta.env.DEV 
+  ? import.meta.env.VITE_USE_FIREBASE_EMULATOR !== 'false'
+  : import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true';
 
-  connectAuthEmulator(auth, "http://localhost:9099");
+if (useEmulator) {
+  // 使用同步導入確保模擬器連線在任何 auth 操作之前已完成
+  connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
   connectFirestoreEmulator(db, "localhost", 8080);
   connectFunctionsEmulator(functions, "localhost", 5001);
   
@@ -38,4 +43,3 @@ if (import.meta.env.DEV && useEmulator) {
 }
 
 export default app;
-

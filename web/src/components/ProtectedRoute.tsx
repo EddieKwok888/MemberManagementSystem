@@ -58,6 +58,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // 用戶已登入但 Firestore 狀態尚未載入完成，繼續顯示載入動畫防止儀表板閃爍
+  if (userStatus === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">正在載入帳號狀態...</p>
+        </div>
+      </div>
+    );
+  }
+
   // 若帳號狀態為 pending，且不是 admin，顯示等待審核頁面
   if (userStatus === 'pending' && !isAdmin) {
     return <PendingApprovalPage />;

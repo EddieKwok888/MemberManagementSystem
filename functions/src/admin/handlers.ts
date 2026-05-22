@@ -21,7 +21,7 @@ export const createMember = functions.https.onCall(async (data, context) => {
   await ensureAdmin(context);
   validateParams(data, ['email', 'password', 'displayName']);
 
-  const { email, password, displayName } = data;
+  const { email, password, displayName, role, phone, address } = data;
 
   try {
     // A. 在 Auth 中創建帳戶
@@ -31,15 +31,19 @@ export const createMember = functions.https.onCall(async (data, context) => {
       displayName,
     });
 
-    // B. 設置預設 Custom Claims (member)
-    await admin.auth().setCustomUserClaims(userRecord.uid, { role: 'member' });
+    const finalRole = role || 'member';
+
+    // B. 設置 Custom Claims
+    await admin.auth().setCustomUserClaims(userRecord.uid, { role: finalRole });
 
     // C. 在 Firestore 創建 Users 文檔
     await admin.firestore().collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
       email,
       displayName,
-      role: 'member',
+      role: finalRole,
+      phone: phone || null,
+      address: address || null,
       status: 'active',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -49,7 +53,7 @@ export const createMember = functions.https.onCall(async (data, context) => {
       context.auth!.uid, 
       'CREATE_MEMBER', 
       userRecord.uid, 
-      { email, displayName, role: 'member', status: 'active' },
+      { email, displayName, role: finalRole, phone: phone || null, address: address || null, status: 'active' },
       context.auth!.token.email,
       getFriendlyName(context.auth!.token, context.auth!.token.email || context.auth!.uid),
       getFriendlyName({ displayName, email }, userRecord.uid)

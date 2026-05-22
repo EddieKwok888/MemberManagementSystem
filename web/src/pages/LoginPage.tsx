@@ -120,20 +120,32 @@ const LoginPage: React.FC = () => {
         {/* 測試用 Quick Login */}
         <div className="mt-8 pt-6 border-t border-slate-100">
           <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-4">Quick Login (測試通道)</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin@vexperthk.com', '123456')}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-100 transition-colors text-sm font-bold disabled:opacity-50"
+              >
+                👑 系統管理員
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('test@vexperthk.com', '123456')}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors text-sm font-bold disabled:opacity-50"
+              >
+                👤 一般會員
+              </button>
+            </div>
             <button
-              onClick={() => handleQuickLogin('admin@vexperthk.com', '123456')}
+              type="button"
+              onClick={() => handleQuickLogin('disable@vexperthk.com', '123456')}
               disabled={loading}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-100 transition-colors text-sm font-bold disabled:opacity-50"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-rose-50 text-rose-700 rounded-xl hover:bg-rose-100 transition-colors text-sm font-bold disabled:opacity-50"
             >
-              👑 管理員
-            </button>
-            <button
-              onClick={() => handleQuickLogin('test@vexperthk.com', '123456')}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors text-sm font-bold disabled:opacity-50"
-            >
-              👤 一般會員
+              🚫 內部停用測試
             </button>
           </div>
         </div>

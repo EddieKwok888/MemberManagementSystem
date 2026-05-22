@@ -32,30 +32,58 @@ const RegisterPage: React.FC = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!allowRegistration) return;
-    setLoading(true);
     setError('');
+
+    // 電子郵件格式驗證
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      setError('電子郵件格式不正確，必須是有效的電郵格式（例如：xxx@xxx.com）。');
+      return;
+    }
+
+    setLoading(true);
 
     try {
       // 1. 讀取系統設定的預設會員狀態
       const { doc: firestoreDoc, getDoc, setDoc, serverTimestamp } = await import('firebase/firestore');
       const settingsSnap = await getDoc(firestoreDoc(db, 'systemSettings', 'config'));
       const defaultStatus = settingsSnap.exists()
-        ? (settingsSnap.data().defaultMemberStatus || 'active')
-        : 'active';
+        ? (settingsSnap.data().defaultMemberStatus || 'pending')
+        : 'pending';
 
       // 2. 在 Firebase Auth 中建立帳號
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName });
 
-      // 3. 在 Firestore 中建立用戶文件，套用預設狀態
-      await setDoc(firestoreDoc(db, 'users', userCredential.user.uid), {
-        uid: userCredential.user.uid,
-        email,
-        displayName,
-        role: 'member',
-        status: defaultStatus,
-        createdAt: serverTimestamp(),
-      });
+      // 3. 延遲 1.5 秒以利 Firebase Auth 狀態同步至 Firestore，並讓後端 Cloud Function 順利完成初始建檔
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        const userRef = firestoreDoc(db, 'users', userCredential.user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          // 如果後端 Cloud Function 已經搶先建立了用戶文件，我們只更新真實姓名與顯示名稱
+          // 避開修改 role, uid, createdAt 等受限制的安全規則欄位！
+          await setDoc(userRef, {
+            displayName,
+            realName: displayName,
+          }, { merge: true });
+        } else {
+          // 如果 Cloud Function 還沒跑完，我們主動以 create 規則建立完整文件
+          await setDoc(userRef, {
+            uid: userCredential.user.uid,
+            email,
+            displayName,
+            realName: displayName,
+            role: 'member',
+            status: defaultStatus,
+            createdAt: serverTimestamp(),
+          });
+        }
+      } catch (firestoreErr) {
+        console.warn("Firestore 同步更新失敗，但 Auth 帳號已建立成功。將引導至首頁:", firestoreErr);
+      }
 
       navigate('/');
     } catch (err: any) {

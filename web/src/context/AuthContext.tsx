@@ -27,42 +27,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubscribeDoc: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true); // 立刻設為 loading，防止異步讀取 Firestore 狀態時前端產生狀態閃爍
       setUser(firebaseUser);
+
+      // 清除舊的 Firestore 監聽器
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+        unsubscribeDoc = null;
+      }
 
       if (firebaseUser) {
         try {
-          // 1. 嘗試獲取 Custom Claims
-          const tokenResult = await firebaseUser.getIdTokenResult();
+          // 1. 嘗試獲取 Custom Claims (強制刷新以防瀏覽器快取舊的角色 Claims)
+          const tokenResult = await firebaseUser.getIdTokenResult(true);
           const claimsRole = tokenResult.claims.role as string | undefined;
 
-          // 2. 從 Firestore 讀取完整資料 (role + status)
-          const { doc, getDoc } = await import('firebase/firestore');
+          // 2. 訂閱 Firestore 實時資料 (role + status)
+          const { doc, onSnapshot } = await import('firebase/firestore');
           const { db } = await import('../firebase');
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setRole(claimsRole || data.role || 'member');
-            setUserStatus(data.status || 'active');
-          } else {
+          unsubscribeDoc = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              setRole(claimsRole || data.role || 'member');
+              setUserStatus(data.status || 'pending');
+            } else {
+              setRole(claimsRole || 'member');
+              // 當前文檔尚未建立時，預設狀態為 pending 避開 race condition 直接存取系統
+              setUserStatus('pending');
+            }
+            setLoading(false);
+          }, (err) => {
+            console.error('訂閱用戶文件失敗，預設為待審核:', err);
             setRole(claimsRole || 'member');
-            setUserStatus('active');
-          }
+            setUserStatus('pending');
+            setLoading(false);
+          });
         } catch (err) {
           console.error('獲取角色/狀態失敗:', err);
           setRole('member');
-          setUserStatus('active');
+          setUserStatus('pending');
+          setLoading(false);
         }
       } else {
         setRole(null);
         setUserStatus(null);
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+      }
+    };
   }, []);
 
   const value = {

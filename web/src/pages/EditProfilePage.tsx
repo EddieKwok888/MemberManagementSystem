@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase';
+import { db, functions } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, Phone, MapPin, User, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Phone, MapPin, User, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const EditProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -16,20 +18,28 @@ const EditProfilePage: React.FC = () => {
     address: '',
     realName: '',
   });
+  const [initialData, setInitialData] = useState({
+    phone: '',
+    address: '',
+    realName: '',
+  });
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
       try {
-        const docRef = doc(db, 'memberProfiles', user.uid);
+        const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setFormData({
+          const loadedData = {
             phone: data.phone || '',
             address: data.address || '',
             realName: data.realName || '',
-          });
+          };
+          setFormData(loadedData);
+          setInitialData(loadedData);
         }
       } catch (err) {
         console.error("獲取檔案失敗", err);
@@ -44,21 +54,85 @@ const EditProfilePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    setError('');
+
+    // 電話資料驗證：香港電話 8 位數字 (除去空格、橫線、括號及 +852/852 國碼前綴後，必須是 8 位數字)
+    const rawPhone = formData.phone || '';
+    let cleanedPhone = rawPhone.replace(/[\s\-()]/g, '');
+    if (cleanedPhone.startsWith('+852')) {
+      cleanedPhone = cleanedPhone.substring(4);
+    } else if (cleanedPhone.startsWith('852') && cleanedPhone.length > 8) {
+      cleanedPhone = cleanedPhone.substring(3);
+    }
+
+    if (!cleanedPhone) {
+      setError('請輸入聯絡電話。');
+      return;
+    }
+
+    if (!/^\d{8}$/.test(cleanedPhone)) {
+      setError('電話資料格式不正確，必須是 8 位數字的香港電話（例如：21234567 或 91234567）。');
+      return;
+    }
+
+    // 將整理後的乾淨 8 位數字電話更新回表單狀態中
+    const finalFormData = {
+      ...formData,
+      phone: cleanedPhone
+    };
+
+    // 計算是否有任何異動，實現精準的異動追蹤
+    const changedFields: Record<string, any> = {};
+    let hasChanges = false;
+    if (finalFormData.realName !== initialData.realName) {
+      changedFields.realName = finalFormData.realName;
+      hasChanges = true;
+    }
+    if (finalFormData.phone !== initialData.phone) {
+      changedFields.phone = finalFormData.phone;
+      hasChanges = true;
+    }
+    if (finalFormData.address !== initialData.address) {
+      changedFields.address = finalFormData.address;
+      hasChanges = true;
+    }
+
+    if (!hasChanges) {
+      // 沒有任何修改，直接顯示成功並返回
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+      return;
+    }
     
     setSaving(true);
     try {
+      // 1. 同步更新 Firebase Auth Profile
+      await updateProfile(user, { displayName: finalFormData.realName });
+
+      // 2. 同步更新 Firestore 中的 users 檔案 (確保前台顯示即時更新)
       const docRef = doc(db, 'users', user.uid);
       await setDoc(docRef, {
-        ...formData,
+        ...finalFormData,
+        displayName: finalFormData.realName,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
 
-      
+      // 3. 呼叫已部署的後端 Cloud Function，繞過客戶端規則限制，安全寫入 UPDATE_SELF_PROFILE 審計日誌
+      const updateMemberProfileFn = httpsCallable(functions, 'updateMemberProfile');
+      await updateMemberProfileFn({
+        uid: user.uid,
+        updates: changedFields
+      });
+
+      // 更新快取以追蹤隨後的更改
+      setFormData(finalFormData);
+      setInitialData({ ...finalFormData });
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error("更新失敗", err);
-      alert("保存失敗，請重試。");
+      setError('保存失敗，請重試。');
     } finally {
       setSaving(false);
     }
@@ -85,6 +159,12 @@ const EditProfilePage: React.FC = () => {
 
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 block" htmlFor="realName">
                 真實姓名

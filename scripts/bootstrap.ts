@@ -60,9 +60,12 @@ async function bootstrap() {
   console.log('✅ 角色數據已寫入');
 
   // 3. 初始化系統設置
-  await db.collection('systemSettings').doc('global').set({
+  await db.collection('systemSettings').doc('config').set({
     maintenanceMode: false,
     minAppVersion: '1.0.0',
+    adminAlertEmail: 'admin@vexperthk.com',
+    allowPublicRegistration: true,
+    defaultMemberStatus: 'active',
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   console.log('✅ 系統設置已初始化');
