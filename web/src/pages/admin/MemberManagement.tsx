@@ -357,13 +357,13 @@ const MemberManagement: React.FC = () => {
                         </button>
                         <button 
                           onClick={() => handleToggleStatus(member.id, member.status !== 'disabled' ? 'active' : 'disabled')}
-                          disabled={actionLoading === member.id}
+                          disabled={actionLoading === member.id || member.email === 'eddie@vexperthk.com'}
                           className={`p-2 transition-colors rounded-lg ${
                             member.status !== 'disabled' 
                               ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' 
                               : 'text-amber-600 hover:text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                          title={member.status !== 'disabled' ? "停用帳號" : "恢復帳號"}
+                          } disabled:opacity-30`}
+                          title={member.email === 'eddie@vexperthk.com' ? "系統預設緊急管理員帳戶禁止停用" : (member.status !== 'disabled' ? "停用帳號" : "恢復帳號")}
                         >
                           {actionLoading === member.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -375,9 +375,9 @@ const MemberManagement: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleDeleteMember(member.id, member.displayName || member.email)}
-                          disabled={actionLoading === `delete_${member.id}`}
-                          className="p-2 text-slate-400 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50 disabled:opacity-50"
-                          title="永久刪除"
+                          disabled={actionLoading === `delete_${member.id}` || member.email === 'eddie@vexperthk.com'}
+                          className="p-2 text-slate-400 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50 disabled:opacity-30"
+                          title={member.email === 'eddie@vexperthk.com' ? "系統預設緊急管理員帳戶禁止刪除" : "永久刪除"}
                         >
                           {actionLoading === `delete_${member.id}` ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -457,8 +457,9 @@ const MemberManagement: React.FC = () => {
                 <label className="text-sm font-semibold text-slate-700">電子郵件</label>
                 <input
                   required
+                  disabled={editingMember.email === 'eddie@vexperthk.com'}
                   type="email"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm disabled:opacity-60"
                   value={editingMember.email}
                   onChange={e => setEditingMember({ ...editingMember, email: e.target.value })}
                 />
@@ -489,7 +490,8 @@ const MemberManagement: React.FC = () => {
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">系統角色</label>
                 <select 
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  disabled={editingMember.email === 'eddie@vexperthk.com'}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm disabled:opacity-60"
                   value={editingMember.role}
                   onChange={e => setEditingMember({ ...editingMember, role: e.target.value })}
                 >
@@ -497,7 +499,11 @@ const MemberManagement: React.FC = () => {
                   <option value="staff">員工</option>
                   <option value="admin">管理員</option>
                 </select>
-                <p className="text-[10px] text-slate-400">更改角色將影響該用戶的系統訪問權限</p>
+                <p className="text-[10px] text-slate-400">
+                  {editingMember.email === 'eddie@vexperthk.com' 
+                    ? '系統預設緊急管理員角色與 Email 地址不可修改' 
+                    : '更改角色將影響該用戶的系統訪問權限'}
+                </p>
               </div>
 
               <div className="pt-4 flex gap-3">

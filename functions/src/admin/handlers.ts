@@ -83,9 +83,22 @@ export const toggleMemberStatus = functions.https.onCall(async (data, context) =
   const adminDoc = await admin.firestore().collection('users').doc(context.auth!.uid).get();
   const adminName = getFriendlyName(adminDoc.data(), context.auth!.token.email || context.auth!.uid);
 
-  // 獲取目標姓名
+  // 獲取目標資訊
   const targetDoc = await admin.firestore().collection('users').doc(targetUid).get();
-  const targetName = getFriendlyName(targetDoc.data(), targetUid);
+  const targetData = targetDoc.data();
+  const targetName = getFriendlyName(targetData, targetUid);
+
+  let targetEmail = targetData?.email;
+  if (!targetEmail) {
+    try {
+      const userRecord = await admin.auth().getUser(targetUid);
+      targetEmail = userRecord.email;
+    } catch (e) {}
+  }
+
+  if (isDisabled && targetEmail === 'eddie@vexperthk.com') {
+    throw new functions.https.HttpsError('failed-precondition', '基於系統安全，禁止停用預設的緊急管理員帳戶 (eddie@vexperthk.com)！');
+  }
 
   // A. 在 Auth 中更新
   await admin.auth().updateUser(targetUid, { disabled: isDisabled });
@@ -124,9 +137,22 @@ export const deleteMember = functions.https.onCall(async (data, context) => {
   const adminDoc = await admin.firestore().collection('users').doc(context.auth!.uid).get();
   const adminName = getFriendlyName(adminDoc.data(), context.auth!.token.email || context.auth!.uid);
 
-  // 獲取目標姓名
+  // 獲取目標資訊
   const targetDoc = await admin.firestore().collection('users').doc(targetUid).get();
-  const targetName = getFriendlyName(targetDoc.data(), targetUid);
+  const targetData = targetDoc.data();
+  const targetName = getFriendlyName(targetData, targetUid);
+
+  let targetEmail = targetData?.email;
+  if (!targetEmail) {
+    try {
+      const userRecord = await admin.auth().getUser(targetUid);
+      targetEmail = userRecord.email;
+    } catch (e) {}
+  }
+
+  if (targetEmail === 'eddie@vexperthk.com') {
+    throw new functions.https.HttpsError('failed-precondition', '基於系統安全，禁止刪除預設的緊急管理員帳戶 (eddie@vexperthk.com)！');
+  }
 
   // A. 從 Auth 刪除
   await admin.auth().deleteUser(targetUid);
@@ -162,9 +188,22 @@ export const assignRole = functions.https.onCall(async (data, context) => {
   const adminDoc = await admin.firestore().collection('users').doc(context.auth!.uid).get();
   const adminName = getFriendlyName(adminDoc.data(), context.auth!.token.email || context.auth!.uid);
 
-  // 獲取目標姓名
+  // 獲取目標資訊
   const targetDoc = await admin.firestore().collection('users').doc(targetUid).get();
-  const targetName = getFriendlyName(targetDoc.data(), targetUid);
+  const targetData = targetDoc.data();
+  const targetName = getFriendlyName(targetData, targetUid);
+
+  let targetEmail = targetData?.email;
+  if (!targetEmail) {
+    try {
+      const userRecord = await admin.auth().getUser(targetUid);
+      targetEmail = userRecord.email;
+    } catch (e) {}
+  }
+
+  if (targetEmail === 'eddie@vexperthk.com' && role !== 'admin') {
+    throw new functions.https.HttpsError('failed-precondition', '基於系統安全，禁止更改預設緊急管理員帳戶 (eddie@vexperthk.com) 的管理員角色！');
+  }
 
   const allowedRoles = ['admin', 'staff', 'member'];
   if (!allowedRoles.includes(role)) {
@@ -287,9 +326,27 @@ export const updateMemberByAdmin = functions.https.onCall(async (data, context) 
   const adminDoc = await admin.firestore().collection('users').doc(context.auth!.uid).get();
   const adminName = getFriendlyName(adminDoc.data(), context.auth!.token.email || context.auth!.uid);
 
-  // 獲取目標姓名
+  // 獲取目標資訊
   const targetDoc = await admin.firestore().collection('users').doc(targetUid).get();
-  const targetName = getFriendlyName(targetDoc.data(), targetUid);
+  const targetData = targetDoc.data();
+  const targetName = getFriendlyName(targetData, targetUid);
+
+  let targetEmail = targetData?.email;
+  if (!targetEmail) {
+    try {
+      const userRecord = await admin.auth().getUser(targetUid);
+      targetEmail = userRecord.email;
+    } catch (e) {}
+  }
+
+  if (targetEmail === 'eddie@vexperthk.com') {
+    if (email !== 'eddie@vexperthk.com') {
+      throw new functions.https.HttpsError('failed-precondition', '基於系統安全，禁止修改預設緊急管理員的 Email 地址 (eddie@vexperthk.com)！');
+    }
+    if (role !== 'admin') {
+      throw new functions.https.HttpsError('failed-precondition', '基於系統安全，禁止更改預設緊急管理員帳戶 (eddie@vexperthk.com) 的管理員角色！');
+    }
+  }
 
   try {
     // A. 更新 Auth 中的資料 (Email & DisplayName)
