@@ -213,6 +213,66 @@ npx ts-node scripts/importData.ts backups/backup-xxxxxxxxxxxx
 
 ---
 
+## 📱 Android 原生 Native 應用程式 (2026年5月更新)
+
+本專案現已全面支援**原生 Android 應用程式 (Android Native App)**！專為行動裝置進行了高品質的適配，並與 Live Firebase 生產環境直接連接，達成即時同步運作。
+
+### 1. 核心技術棧 (Core Technology Stack)
+*   **開發語言**: Kotlin 
+*   **UI 框架**: Jetpack Compose (宣告式 UI)
+*   **設計規範**: Google Material 3 (極致 Slate-Indigo 靛藍高階質感主題)
+*   **建置系統**: Gradle Kotlin DSL (已完美同步升級至 **Gradle 9.3.1** 與 AGP 9.1.0 規範)
+*   **系統要求**: `minSdk = 33` (Android 13+)，支援最新的隱私與安全性要求。
+
+### 2. 精美前台功能 (Member Features)
+*   **即時維護模式攔截**: 應用程式即時監聽 Firestore 中的 `systemSettings/config`，一旦管理員在 Web 端或後台開啟全站維護，Android 端會**秒級反應並即刻引導非管理員至維護頁面**，關閉後能立刻自動恢復，無需重啟 App。
+*   **審核/停用狀態重定向**: 動態監聽用戶帳戶 `users/{uid}` 狀態。
+    *   **待審核 (`pending`)**: 自動阻絕並進入琥珀色「審核中」鎖定頁面。
+    *   **已停用 (`disabled`)**: 自動強制登出並進入玫瑰紅「帳戶停用」警示頁面。
+*   **高防禦性 Null-Safety 設計**: 完美相容線上舊資料與缺失欄位。若用戶未填寫真實姓名、電話或地址，App 能防禦性防禦解析，乾淨呈現 **`未設置`** 或載入空白輸入框，絕不因 null 指標崩潰。
+*   **安全變更比對 (Delta Tracking)**: 僅在有修改時才將真實姓名、電話或通訊地址變更內容寫入 Firestore，並安全更新 Firebase 顯示名稱。
+
+### 3. 管理員 Lite 模組 (Admin Lite Feature)
+若登入用戶的角色為 `admin`，應用程式將**自動切換進入極速管理後台 (Admin Lite)**：
+*   **儀表板數據概覽**: 提供總會員數、啟用中、待審核、停用中等實時卡片數據。
+*   **模糊關鍵字搜尋**: 提供高流暢度的姓名或 Email 關鍵字過濾搜尋。
+*   **詳細檔案檢索**: 查看所有會員的完整資料（含電郵、電話、地址與註冊日期）。
+*   **狀態一鍵變更**: 提供「待審核」、「啟用」、「停用」按鈕控制，可即時修改用戶權限，並自動攔截 Firestore 權限不足的安全性報錯。
+
+---
+
+## 🏃 如何編譯與執行 Android 專案
+
+### 第一步：定位 Android 專案目錄
+Android 應用程式的所有源代碼和配置皆存放於：
+`C:\GoogleProject\MemberManagementSystem\android`
+
+### 第二步：安裝 Firebase Live 設定檔
+1. 請確保您已將生產環境的 **`google-services.json`** 檔案放置在：
+   `C:\GoogleProject\MemberManagementSystem\android\app\google-services.json`
+2. 本專案專為連接真實 Live 生產環境設計，已完全移除了任何模擬器 (Emulator) 的 localhost 殘留代碼。
+
+### 第三步：使用 Gradle Wrapper 編譯專案
+專案已內建 Gradle 9.3.1 Wrapper，請打開終端機 (PowerShell) 並進入 `android` 目錄，執行：
+```powershell
+cd android
+# 執行乾淨編譯並生成 Debug APK
+.\gradlew.bat :app:assembleDebug
+```
+*   **編譯成功標誌**: 終端機顯示 `BUILD SUCCESSFUL`。
+*   **APK 檔案位置**: `android/app/build/outputs/apk/debug/app-debug.apk`
+
+### 第四步：在 Android Studio 中開啟並執行
+1. 打開 **Android Studio**，點擊 **File > Open**，選擇並載入 `android` 資料夾。
+2. 系統會依據 [local.properties](file:///C:/GoogleProject/MemberManagementSystem/android/local.properties) 設定的 `sdk.dir` 自動同步 SDK 依賴（已內建配置為您本機的 Android SDK 路徑）。
+3. 連接您的實體手機（開啟 USB 偵錯）或啟動模擬器 AVD。
+4. 選擇上方工具列的 **`app`** 啟動項，點擊 **Run (▶)** (或按下 `Shift + F10`) 即可自動部署至裝置。
+
+> 💡 **測試小貼士**:
+> App 登入畫面特別在 **Debug 模式下** 內建了管理員與會員的「一鍵快速登入通道」，讓您無需繁瑣輸入，即可測試 approved / pending / disabled 用戶的各種流向與管理權限！
+
+---
+
 ## ⚠️ 注意事項
 
 *   **僅供測試用途**：目前嘅本地開發環境同模擬器資料**僅供開發測試使用**。請勿將其視為正式生產環境。
