@@ -1,0 +1,22 @@
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (SDK path, etc.) - DO NOT COMMIT
+local.properties
+
+# Log files
+*.log
+
+# Android Studio / IntelliJ IDEA files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+
+# Built APKs/AARs
+*.apk
+*.aar

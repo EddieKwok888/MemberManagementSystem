@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 1. Drop Shadow for Shield Badge -->
+    <path
+        android:fillColor="#15001030"
+        android:pathData="M35,38 C35,34.7 37.7,32 41,32 L69,32 C72.3,32 75,34.7 75,38 L75,60 C75,72 55,80 55,80 C55,80 35,72 35,60 Z" />
+
+    <!-- 2. Outer White Shield Border -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,36 C34,32.7 36.7,30 40,30 L68,30 C71.3,30 74,32.7 74,36 L74,58 C74,70 54,78 54,78 C54,78 34,70 34,58 Z" />
+
+    <!-- 3. Inner Shield with Vibrant Cyan-to-Blue Gradient -->
+    <path
+        android:pathData="M37,39 C37,36.8 38.8,35 41,35 L67,35 C69.2,35 71,36.8 71,39 L71,57 C71,67 54,75 54,75 C54,75 37,67 37,57 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="35"
+                android:endX="54"
+                android:endY="75"
+                android:type="linear">
+                <item android:offset="0" android:color="#E0F7FA" /> <!-- Very light cyan -->
+                <item android:offset="0.4" android:color="#80DEEA" /> <!-- Soft light-blue/cyan -->
+                <item android:offset="1" android:color="#00A2ED" /> <!-- Vibrant Microsoft light blue -->
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 4. Glossy Highlight at the top of the Inner Shield -->
+    <path
+        android:fillColor="#50FFFFFF"
+        android:pathData="M41,35 L67,35 C69.2,35 71,36.8 71,39 L71,45 L37,45 L37,39 C37,36.8 38.8,35 41,35 Z" />
+
+    <!-- 5. Stylized Secure Member Profile - Head -->
+    <path
+        android:fillColor="#0A2540"
+        android:pathData="M54,38 A4.5,4.5 0 1,1 54,47 A4.5,4.5 0 1,1 54,38" />
+
+    <!-- 6. Stylized Secure Member Profile - Torso / "V" Badge -->
+    <path
+        android:fillColor="#0A2540"
+        android:pathData="M43,54 C43,51 47,50 54,50 C61,50 65,51 65,54 L59,62.5 C56.5,66.5 51.5,66.5 49,62.5 Z" />
+
+    <!-- 7. Verified / Expert Cyan Accent Ring or Element -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M54,50 C57,50 65,51 65,54 L62,58 C59,54 56.5,52 54,51.5 Z" />
+
+</vector>
