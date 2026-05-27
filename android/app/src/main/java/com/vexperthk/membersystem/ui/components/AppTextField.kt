@@ -55,10 +55,11 @@ fun AppTextField(
             singleLine = singleLine,
             maxLines = maxLines,
             shape = RoundedCornerShape(12.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = Slate200,
-                containerColor = MaterialTheme.colorScheme.surface
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = Slate200,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             ),
             modifier = Modifier.fillMaxWidth()
         )
