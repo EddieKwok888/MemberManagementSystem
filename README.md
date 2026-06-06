@@ -217,14 +217,22 @@ npx ts-node scripts/importData.ts backups/backup-xxxxxxxxxxxx
 
 本專案現已全面支援**原生 Android 應用程式 (Android Native App)**！專為行動裝置進行了高品質的適配，並與 Live Firebase 生產環境直接連接，達成即時同步運作。
 
-### 1. 核心技術棧 (Core Technology Stack)
-*   **開發語言**: Kotlin 
-*   **UI 框架**: Jetpack Compose (宣告式 UI)
-*   **設計規範**: Google Material 3 (極致 Slate-Indigo 靛藍高階質感主題)
-*   **建置系統**: Gradle Kotlin DSL (已完美同步升級至 **Gradle 9.3.1** 與 AGP 9.1.0 規範)
-*   **系統要求**: `minSdk = 33` (Android 13+)，支援最新的隱私與安全性要求。
+### 1. 當前版本規格 (Current Specifications)
+*   **應用程式名稱**: `vExperthk`
+*   **應用程式套件名 (Application ID)**: `com.vexperthk.membersystem`
+*   **目前版本號碼 (Version Name)**: `1.0.0`
+*   **內部版本代號 (Version Code)**: `1`
+*   **發布日期**: 2026年5月27日
 
-### 2. 精美前台功能 (Member Features)
+### 2. 核心技術棧與相容性 (Core Tech Stack & Compatibility)
+*   **開發語言**: Kotlin `2.2.10` / Java `17`
+*   **UI 框架**: Jetpack Compose (BOM `2024.12.01`，已同步升級以解決舊版 BOM 導致的 `NoSuchMethodError` 執行期崩潰問題) / Material 3
+*   **導航框架**: Navigation Compose `2.8.5`
+*   **建置系統**: Gradle Groovy DSL (相容未來 Gradle 10.0 的嚴格語法規格，100% 無警告建置)，搭配 Gradle Wrapper **9.4.1** 與 AGP **9.2.1**。
+*   **系統要求**: 最低相容系統 `minSdk = 26` (Android 8.0 Oreo)，支援 Premium 自適應圖標；目標/編譯 SDK `targetSdk = 35`, `compileSdk = 35` (Android 15)。
+
+### 3. 精美前台功能與設計 (Design & Member Features)
+*   **Premium 企業級自適應圖標**: 採用 Microsoft 365 風格的深企業藍漸變背景，配搭精緻的玻璃感 Verified Member 特級會員盾牌徽章（具備高對比白金邊框與青綠色科技感弧線），並自動生成各解析度的標準與圓形 Legacy 圖標。
 *   **即時維護模式攔截**: 應用程式即時監聽 Firestore 中的 `systemSettings/config`，一旦管理員在 Web 端或後台開啟全站維護，Android 端會**秒級反應並即刻引導非管理員至維護頁面**，關閉後能立刻自動恢復，無需重啟 App。
 *   **審核/停用狀態重定向**: 動態監聽用戶帳戶 `users/{uid}` 狀態。
     *   **待審核 (`pending`)**: 自動阻絕並進入琥珀色「審核中」鎖定頁面。
@@ -232,7 +240,7 @@ npx ts-node scripts/importData.ts backups/backup-xxxxxxxxxxxx
 *   **高防禦性 Null-Safety 設計**: 完美相容線上舊資料與缺失欄位。若用戶未填寫真實姓名、電話或地址，App 能防禦性防禦解析，乾淨呈現 **`未設置`** 或載入空白輸入框，絕不因 null 指標崩潰。
 *   **安全變更比對 (Delta Tracking)**: 僅在有修改時才將真實姓名、電話或通訊地址變更內容寫入 Firestore，並安全更新 Firebase 顯示名稱。
 
-### 3. 管理員 Lite 模組 (Admin Lite Feature)
+### 4. 管理員 Lite 模組 (Admin Lite Feature)
 若登入用戶的角色為 `admin`，應用程式將**自動切換進入極速管理後台 (Admin Lite)**：
 *   **儀表板數據概覽**: 提供總會員數、啟用中、待審核、停用中等實時卡片數據。
 *   **模糊關鍵字搜尋**: 提供高流暢度的姓名或 Email 關鍵字過濾搜尋。
@@ -245,15 +253,15 @@ npx ts-node scripts/importData.ts backups/backup-xxxxxxxxxxxx
 
 ### 第一步：定位 Android 專案目錄
 Android 應用程式的所有源代碼和配置皆存放於：
-`C:\GoogleProject\MemberManagementSystem\android`
+`C:\GoogleProject\MemeberSystem\android`
 
 ### 第二步：安裝 Firebase Live 設定檔
 1. 請確保您已將生產環境的 **`google-services.json`** 檔案放置在：
-   `C:\GoogleProject\MemberManagementSystem\android\app\google-services.json`
+   `C:\GoogleProject\MemeberSystem\android\app\google-services.json`
 2. 本專案專為連接真實 Live 生產環境設計，已完全移除了任何模擬器 (Emulator) 的 localhost 殘留代碼。
 
 ### 第三步：使用 Gradle Wrapper 編譯專案
-專案已內建 Gradle 9.3.1 Wrapper，請打開終端機 (PowerShell) 並進入 `android` 目錄，執行：
+專案已內建 Gradle 9.4.1 Wrapper，請打開終端機 (PowerShell) 並進入 `android` 目錄，執行：
 ```powershell
 cd android
 # 執行乾淨編譯並生成 Debug APK
@@ -264,12 +272,17 @@ cd android
 
 ### 第四步：在 Android Studio 中開啟並執行
 1. 打開 **Android Studio**，點擊 **File > Open**，選擇並載入 `android` 資料夾。
-2. 系統會依據 [local.properties](file:///C:/GoogleProject/MemberManagementSystem/android/local.properties) 設定的 `sdk.dir` 自動同步 SDK 依賴（已內建配置為您本機的 Android SDK 路徑）。
+2. 系統會依據 [local.properties](file:///C:/GoogleProject/MemeberSystem/android/local.properties) 設定的 `sdk.dir` 自動同步 SDK 依賴（已內建配置為您本機的 Android SDK 路徑）。
 3. 連接您的實體手機（開啟 USB 偵錯）或啟動模擬器 AVD。
 4. 選擇上方工具列的 **`app`** 啟動項，點擊 **Run (▶)** (或按下 `Shift + F10`) 即可自動部署至裝置。
 
 > 💡 **測試小貼士**:
 > App 登入畫面特別在 **Debug 模式下** 內建了管理員與會員的「一鍵快速登入通道」，讓您無需繁瑣輸入，即可測試 approved / pending / disabled 用戶的各種流向與管理權限！
+
+---
+
+## 🔒 隱私與安全性合規 (Privacy & Security)
+本專案已全面部署符合 Google Play 及主流應用商店審核規範的隱私權政策，詳情請參閱根目錄的 [PRIVACY_POLICY.md](file:///C:/GoogleProject/MemeberSystem/PRIVACY_POLICY.md)。
 
 ---
 
